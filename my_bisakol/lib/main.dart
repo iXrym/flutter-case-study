@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'RegistrationPage.dart';
+import 'GroupPage.dart';
 
 void main() {
   runApp(MyFirstApp());
