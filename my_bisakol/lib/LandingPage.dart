@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'AddGroupPage.dart'; // directly inside lib
+import 'GroupPage.dart';    // directly inside lib
 
 void main() {
   runApp(const DietPlannerApp());
@@ -17,6 +19,10 @@ class DietPlannerApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const LandingPage(),
+      routes: {
+        '/addGroup': (context) => const AddGroupPage(),
+        '/group': (context) =>  GroupPage(),
+      },
     );
   }
 }
@@ -41,6 +47,33 @@ class _LandingPageState extends State<LandingPage> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+
+    // Simulate search result
+    if (query.toLowerCase() == 'test') {
+      Navigator.pushNamed(context, '/group'); // Go to GroupPage if a result is found
+    } else {
+      // If no result, show option to add a group
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No Group Found'),
+          content: const Text('Would you like to create a new group?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pushNamed(context, '/addGroup'); // Go to AddGroupPage
+              },
+              child: const Text('Add Group'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override

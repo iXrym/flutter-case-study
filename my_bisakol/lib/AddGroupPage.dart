@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 
-class RegistrationPage extends StatefulWidget {
+class AddGroupPage extends StatefulWidget {
+  const AddGroupPage({super.key}); // make constructor const
+
   @override
-  State<RegistrationPage> createState() => _RegistrationPageState();
+  State<AddGroupPage> createState() => _AddGroupPageState();
 }
 
-class _RegistrationPageState extends State<RegistrationPage> {
+class _AddGroupPageState extends State<AddGroupPage> {
   final form = GlobalKey<FormState>();
 
   TextEditingController groupname = TextEditingController();
   TextEditingController section = TextEditingController();
   TextEditingController middleName = TextEditingController();
 
-  postData() {
+  void postData() {
     final post_data = {
       "Section": section.text,
       "middle_name": middleName.text,
@@ -24,7 +26,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Registration')),
+      appBar: AppBar(title: const Text('Add Group')),
       backgroundColor: const Color.fromARGB(255, 246, 246, 246),
       body: SafeArea(
         child: Form(
@@ -38,10 +40,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     children: [
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           child: TextFormField(
                             controller: groupname,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: "Group Name:",
                             ),
                             validator: (value) {
@@ -58,16 +60,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           ),
                         ),
                       ),
-
                       Expanded(
                         child: Card(
                           margin: EdgeInsets.zero,
                           child: Padding(
-                            padding: EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(12),
                             child: TextFormField(
                               controller: section,
-                              decoration: InputDecoration(
-                                labelText: "Section: ",
+                              decoration: const InputDecoration(
+                                labelText: "Section:",
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -87,6 +88,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
                 Center(
                   child: ElevatedButton.icon(
                     onPressed: () {
@@ -94,8 +96,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         postData();
                       }
                     },
-                    icon: Icon(Icons.send),
-                    label: Text('Submit Form'),
+                    icon: const Icon(Icons.send),
+                    label: const Text('Submit Form'),
                   ),
                 ),
               ],
