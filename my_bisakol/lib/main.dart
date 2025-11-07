@@ -1,58 +1,45 @@
 import 'package:flutter/material.dart';
-import 'RegistrationPage.dart';
-import 'GroupPage.dart';
 
 void main() {
-  runApp(MyFirstApp());
+  runApp(const DietPlannerApp());
 }
 
-class MyFirstApp extends StatelessWidget {
+class DietPlannerApp extends StatelessWidget {
+  const DietPlannerApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Diet Planner',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true,
       ),
-      home: HomePage(),
+      home: const LandingPage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<LandingPage> createState() => _LandingPageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _LandingPageState extends State<LandingPage> {
   final TextEditingController _controller = TextEditingController();
-  bool? _groupExists;
 
   void _onSearch() {
-    String groupName = _controller.text.trim();
+    String query = _controller.text.trim();
+    if (query.isEmpty) return;
 
-    if (groupName.isEmpty) return;
-
-    if (groupName.toLowerCase() == 'alpha') {
-      setState(() {
-        _groupExists = true;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Group "$groupName" found!')));
-    } else {
-      setState(() {
-        _groupExists = false;
-      });
-    }
-  }
-
-  //ADD BUTTON ROUTE TO REGISTER PAGE
-  void _onAddGroup() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RegistrationPage()),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Searching for "$query"...'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -66,34 +53,76 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/bisaya.png', height: 100),
+              // 🥗 Logo + Title
+              Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: Icon(
+                      Icons.restaurant_menu_rounded,
+                      color: Colors.green.shade700,
+                      size: 70,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Diet Planner",
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Plan smart. Eat healthy.",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 50),
 
+              // 🔍 Search Bar
               Container(
-                width: 500,
-                padding: EdgeInsets.symmetric(horizontal: 10),
+                width: 400,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.grey.shade300),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.shade200,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: Colors.grey[600]),
-                    SizedBox(width: 8),
+                    const Icon(Icons.search, color: Colors.grey),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: "Search for a Group...",
+                        decoration: const InputDecoration(
+                          hintText: "Search your diet group...",
                           border: InputBorder.none,
                         ),
                         onSubmitted: (_) => _onSearch(),
@@ -103,39 +132,15 @@ class _HomePageState extends State<HomePage> {
                       onPressed: _onSearch,
                       child: Text(
                         "Search",
-                        style: TextStyle(fontSize: 16, color: Colors.blue[700]),
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              SizedBox(height: 30),
-
-              if (_groupExists == false)
-                ElevatedButton(
-                  child: Text(' + Add Group'),
-                  onPressed: _onAddGroup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              if (_groupExists == true)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Group found!',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
