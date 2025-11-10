@@ -26,7 +26,7 @@ class _AddGroupPageState extends State<AddGroupPage> {
       final groupName = groupname.text.trim();
       final sectionText = section.text.trim();
 
-      // API Call: /post/group/information
+      // API Call: /post/group/information with group_name and section
       final success = await _apiService.createGroup(groupName, sectionText);
 
       if (mounted) {
@@ -38,13 +38,13 @@ class _AddGroupPageState extends State<AddGroupPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Group created successfully! You can now search for it.',
+                'Group created successfully! Now searching for it...',
               ),
               backgroundColor: Colors.green,
             ),
           );
-          // Return 'true' to indicate successful creation for landing page to refresh/search
-          Navigator.pop(context, true);
+          // Return the actual group name so LandingPage can immediately search for it
+          Navigator.pop(context, groupName);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

@@ -18,18 +18,21 @@ class GroupPageState extends State<GroupPage> {
   List<Map<String, dynamic>> _groupMembers = [];
   late String _groupName;
   late String _groupId;
+  late String _section;
 
   @override
   void initState() {
     super.initState();
-    // Use the keys returned from the searchGroup API call
-    _groupName =
-        widget.groupData['group_name'] ??
-        widget.groupData['Groupname'] ??
-        'Group Details';
-    // Ensure group_id is a string, which is needed for URL paths
-    _groupId = widget.groupData['group_id']?.toString() ?? '';
+    _initializeGroupData(widget.groupData);
     _loadGroupMembers();
+  }
+
+  void _initializeGroupData(Map<String, dynamic> data) {
+    // Use the keys returned from the searchGroup API call
+    _groupName = data['group_name'] ?? data['Groupname'] ?? 'Group Details';
+    _section = data['section'] ?? data['Section'] ?? 'N/A';
+    // Ensure group_id is a string, which is needed for URL paths
+    _groupId = data['group_id']?.toString() ?? '';
   }
 
   Future<void> _loadGroupMembers() async {
@@ -99,7 +102,7 @@ class GroupPageState extends State<GroupPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$_groupName',
+                      _groupName,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -108,7 +111,7 @@ class GroupPageState extends State<GroupPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Section: ${widget.groupData['section'] ?? widget.groupData['Section'] ?? 'N/A'}',
+                      'Section: $_section',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(

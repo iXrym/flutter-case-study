@@ -1,155 +1,127 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 class ApiService {
-  // Use the base URL provided in the instructions
-  static const String _baseUrl = 'https://poltergeists.online/api';
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-  // 1. /get/group/information?group_name=...
-  Future<Map<String, dynamic>?> searchGroup(String groupName) async {
-    // URL construction with query parameter
-    final url = Uri.parse(
-      '$_baseUrl/get/group/information?group_name=$groupName',
+  // --- MOCK DATABASE ---
+  static final List<Group> _groupsDb = [
+    Group(groupId: 'g1', groupName: 'IronTeam', section: 'A-2025'),
+    Group(groupId: 'g2', groupName: 'FitSquad', section: 'B-2025'),
+  ];
+  static final Map<String, List<Member>> _membersDb = {
+    'g1': [
+      Member(
+        memberId: 'm1',
+        groupId: 'g1',
+        firstName: 'Alex',
+        lastName: 'Johnson',
+        birthday: '1998-05-15',
+        height: 175,
+        weight: 70,
+        bmi: 22.9,
+      ),
+      Member(
+        memberId: 'm2',
+        groupId: 'g1',
+        firstName: 'Ben',
+        lastName: 'Clark',
+        birthday: '1995-11-20',
+        height: 185,
+        weight: 90,
+        bmi: 26.3,
+      ),
+    ],
+    'g2': [],
+  };
+  static final Map<String, List<WellnessPlan>> _plansDb = {
+    'm1': [
+      WellnessPlan(
+        dayofWeek: 'Monday',
+        dietPlan: 'High Protein',
+        workPlan: 'Leg Day',
+        tips: 'Stretch well.',
+      ),
+      WellnessPlan(
+        dayofWeek: 'Tuesday',
+        dietPlan: 'Low Carb',
+        workPlan: 'Cardio & Abs',
+        tips: 'Hydrate every hour.',
+      ),
+    ],
+  };
+  // ---------------------
+
+  Future<List<Group>> searchGroup(String groupName) async {
+    // /get/group/information
+    await Future.delayed(const Duration(milliseconds: 500));
+    final found = _groupsDb
+        .where((g) => g.groupName.toLowerCase() == groupName.toLowerCase())
+        .toList();
+    return found;
+  }
+
+  Future<Group> createGroup(String groupName, String section) async {
+    // /post/group/information
+    await Future.delayed(const Duration(milliseconds: 500));
+    final newGroup = Group(
+      groupId: 'g${_groupsDb.length + 1}',
+      groupName: groupName,
+      section: section,
+    );
+    _groupsDb.add(newGroup);
+    _membersDb[newGroup.groupId] = [];
+    return newGroup;
+  }
+
+  Future<List<Member>> getMembers(String groupId) async {
+    // /get/members/group_id
+    await Future.delayed(const Duration(milliseconds: 500));
+    return _membersDb[groupId] ?? [];
+  }
+
+  Future<Member> createMember(
+    String groupId,
+    String firstName,
+    String lastName,
+    String birthday,
+    double height,
+    double weight,
+  ) async {
+    // /create/member/group_id
+    await Future.delayed(const Duration(milliseconds: 500));
+    final double bmi = weight / pow(height / 100, 2);
+
+    final newMember = Member(
+      memberId: 'm${Random().nextInt(10000)}',
+      groupId: groupId,
+      firstName: firstName,
+      lastName: lastName,
+      birthday: birthday,
+      height: height,
+      weight: weight,
+      bmi: double.parse(bmi.toStringAsFixed(1)),
     );
 
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final dynamic decodedBody = json.decode(response.body);
-
-        // API is expected to return a single Map or an empty response
-        if (decodedBody is Map<String, dynamic> && decodedBody.isNotEmpty) {
-          return decodedBody;
-        }
-        // If it returns a list, take the first element (common API pattern)
-        else if (decodedBody is List && decodedBody.isNotEmpty) {
-          return decodedBody.first as Map<String, dynamic>;
-        }
-        // Handle empty or unexpected response
-        return null;
-      }
-      return null;
-    } catch (e) {
-      print('Error searching group: $e');
-      return null;
-    }
+    _membersDb[groupId]?.add(newMember);
+    _plansDb[newMember.memberId] = [];
+    return newMember;
   }
 
-  // 2. /post/group/information
-  // Form parameters: group_name, section
-  Future<bool> createGroup(String groupName, String section) async {
-    final url = Uri.parse('$_baseUrl/post/group/information');
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        // Use the required form parameters
-        body: json.encode({'group_name': groupName, 'section': section}),
-      );
-
-      // Status 200 or 201 indicates successful creation
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      print('Error creating group: $e');
-      return false;
-    }
+  Future<List<WellnessPlan>> getWellnessPlan(String memberId) async {
+    // /get/wellness/plan/group_id/member_id
+    await Future.delayed(const Duration(milliseconds: 500));
+    return _plansDb[memberId] ?? [];
   }
 
-  // 3. /get/members/{group_id}
-  Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
-    // URL construction with path parameter
-    final url = Uri.parse('$_baseUrl/get/members/$groupId');
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final dynamic decodedBody = json.decode(response.body);
-
-        // Expecting a list of members
-        if (decodedBody is List) {
-          return decodedBody.cast<Map<String, dynamic>>();
-        }
-        return [];
-      }
-      return [];
-    } catch (e) {
-      print('Error fetching members: $e');
-      return [];
+  Future<bool> createWellnessPlan(String memberId, WellnessPlan plan) async {
+    // /create/wellness/plan
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!_plansDb.containsKey(memberId)) {
+      _plansDb[memberId] = [];
     }
-  }
-
-  // 4. /create/member/{group_id}
-  // Form parameters: last_name, first_name, birthday, height, weight, bmi (and others like sex)
-  Future<bool> createMember(
-    String groupId,
-    Map<String, dynamic> memberData,
-  ) async {
-    // URL construction with path parameter
-    final url = Uri.parse('$_baseUrl/create/member/$groupId');
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        // memberData already contains all form fields
-        body: json.encode(memberData),
-      );
-
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      print('Error creating member: $e');
-      return false;
-    }
-  }
-
-  // 5. /get/wellness/plan/{group_id}/{member_id}
-  Future<List<Map<String, dynamic>>> getWellnessPlans(
-    String groupId,
-    String memberId,
-  ) async {
-    // URL construction with two path parameters
-    final url = Uri.parse('$_baseUrl/get/wellness/plan/$groupId/$memberId');
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final dynamic decodedBody = json.decode(response.body);
-
-        // Expecting a list of wellness plans
-        if (decodedBody is List) {
-          return decodedBody.cast<Map<String, dynamic>>();
-        }
-        return [];
-      }
-      return [];
-    } catch (e) {
-      print('Error fetching plans: $e');
-      return [];
-    }
-  }
-
-  // 6. /create/wellness/plan
-  // Form parameters: group_id, member_id, dayofWeek, diet_plan, work_plan, tips
-  Future<bool> createWellnessPlan(Map<String, dynamic> planData) async {
-    // URL construction without path parameters (data included in body)
-    final url = Uri.parse('$_baseUrl/create/wellness/plan');
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        // planData already contains all required form fields
-        body: json.encode(planData),
-      );
-
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) {
-      print('Error creating plan: $e');
-      return false;
-    }
+    // Remove existing plan for the day, then add new one
+    _plansDb[memberId]!.removeWhere((p) => p.dayofWeek == plan.dayofWeek);
+    _plansDb[memberId]!.add(plan);
+    return true;
   }
 }
