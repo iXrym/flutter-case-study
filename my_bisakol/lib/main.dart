@@ -33,19 +33,18 @@ class LandingAsMain extends StatefulWidget {
 
 class _LandingAsMainState extends State<LandingAsMain> {
   final TextEditingController _groupController = TextEditingController();
-  final TextEditingController _sectionController = TextEditingController();
+
   bool _loading = false;
   bool _showCreateButton = false;
   Map<String, dynamic>? _foundGroup;
 
   Future<void> _search() async {
     final groupName = _groupController.text.trim();
-    final section = _sectionController.text.trim();
 
     if (groupName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter group name')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter group name')));
       return;
     }
 
@@ -57,30 +56,25 @@ class _LandingAsMainState extends State<LandingAsMain> {
 
     try {
       final data = await ApiService().getGroupInfo(groupName);
-      // data is null when server returns empty / not found
+
       if (data == null || data.isEmpty) {
         setState(() {
           _showCreateButton = true;
         });
       } else {
-        // Expecting something like { "group_id": 1, "group_name": "...", "section": "..." }
         setState(() {
           _foundGroup = data;
         });
-        // Navigate to group page
+
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => GroupPage(
-              groupData: data,
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => GroupPage(groupData: data)),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error searching group: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error searching group: $e')));
     } finally {
       setState(() {
         _loading = false;
@@ -97,7 +91,6 @@ class _LandingAsMainState extends State<LandingAsMain> {
 
   @override
   Widget build(BuildContext context) {
-    // Google-like simple centered UI
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -107,7 +100,7 @@ class _LandingAsMainState extends State<LandingAsMain> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Fitness Groups',
+                'Fitness Mate',
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w400,
@@ -126,8 +119,10 @@ class _LandingAsMainState extends State<LandingAsMain> {
                       borderRadius: BorderRadius.circular(40),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 20,
+                    ),
                     suffixIcon: _loading
                         ? const Padding(
                             padding: EdgeInsets.all(12.0),
@@ -145,15 +140,7 @@ class _LandingAsMainState extends State<LandingAsMain> {
                   onSubmitted: (_) => _search(),
                 ),
               ),
-              const SizedBox(height: 12),
-              // optional section input
-              TextField(
-                controller: _sectionController,
-                decoration: const InputDecoration(
-                  labelText: 'Section (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+
               const SizedBox(height: 12),
               if (_showCreateButton)
                 ElevatedButton.icon(
@@ -162,8 +149,10 @@ class _LandingAsMainState extends State<LandingAsMain> {
                   label: const Text('Create Group'),
                   style: ElevatedButton.styleFrom(
                     shape: const StadiumBorder(),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                 ),
             ],

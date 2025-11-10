@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'AddMemberPage.dart';
-import 'MemberPage.dart';
+import 'MemberPlanPage.dart';
 
 class GroupPage extends StatefulWidget {
   final Map<String, dynamic> groupData;
