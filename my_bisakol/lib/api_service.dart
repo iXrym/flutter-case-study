@@ -1,127 +1,95 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+  final String baseUrl = "https://poltergeists.online";
 
-  // --- MOCK DATABASE ---
-  static final List<Group> _groupsDb = [
-    Group(groupId: 'g1', groupName: 'IronTeam', section: 'A-2025'),
-    Group(groupId: 'g2', groupName: 'FitSquad', section: 'B-2025'),
-  ];
-  static final Map<String, List<Member>> _membersDb = {
-    'g1': [
-      Member(
-        memberId: 'm1',
-        groupId: 'g1',
-        firstName: 'Alex',
-        lastName: 'Johnson',
-        birthday: '1998-05-15',
-        height: 175,
-        weight: 70,
-        bmi: 22.9,
-      ),
-      Member(
-        memberId: 'm2',
-        groupId: 'g1',
-        firstName: 'Ben',
-        lastName: 'Clark',
-        birthday: '1995-11-20',
-        height: 185,
-        weight: 90,
-        bmi: 26.3,
-      ),
-    ],
-    'g2': [],
-  };
-  static final Map<String, List<WellnessPlan>> _plansDb = {
-    'm1': [
-      WellnessPlan(
-        dayofWeek: 'Monday',
-        dietPlan: 'High Protein',
-        workPlan: 'Leg Day',
-        tips: 'Stretch well.',
-      ),
-      WellnessPlan(
-        dayofWeek: 'Tuesday',
-        dietPlan: 'Low Carb',
-        workPlan: 'Cardio & Abs',
-        tips: 'Hydrate every hour.',
-      ),
-    ],
-  };
-  // ---------------------
-
-  Future<List<Group>> searchGroup(String groupName) async {
-    // /get/group/information
-    await Future.delayed(const Duration(milliseconds: 500));
-    final found = _groupsDb
-        .where((g) => g.groupName.toLowerCase() == groupName.toLowerCase())
-        .toList();
-    return found;
-  }
-
-  Future<Group> createGroup(String groupName, String section) async {
-    // /post/group/information
-    await Future.delayed(const Duration(milliseconds: 500));
-    final newGroup = Group(
-      groupId: 'g${_groupsDb.length + 1}',
-      groupName: groupName,
-      section: section,
-    );
-    _groupsDb.add(newGroup);
-    _membersDb[newGroup.groupId] = [];
-    return newGroup;
-  }
-
-  Future<List<Member>> getMembers(String groupId) async {
-    // /get/members/group_id
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _membersDb[groupId] ?? [];
-  }
-
-  Future<Member> createMember(
-    String groupId,
-    String firstName,
-    String lastName,
-    String birthday,
-    double height,
-    double weight,
+  Future<Map<String, dynamic>?> fetchGroupInfo(
+    String groupName,
+    String section,
   ) async {
-    // /create/member/group_id
-    await Future.delayed(const Duration(milliseconds: 500));
-    final double bmi = weight / pow(height / 100, 2);
-
-    final newMember = Member(
-      memberId: 'm${Random().nextInt(10000)}',
-      groupId: groupId,
-      firstName: firstName,
-      lastName: lastName,
-      birthday: birthday,
-      height: height,
-      weight: weight,
-      bmi: double.parse(bmi.toStringAsFixed(1)),
+    final url = Uri.parse('$baseUrl/post/group/information');
+    final response = await http.post(
+      url,
+      body: {'group_name': groupName, 'section': section},
     );
 
-    _membersDb[groupId]?.add(newMember);
-    _plansDb[newMember.memberId] = [];
-    return newMember;
-  }
-
-  Future<List<WellnessPlan>> getWellnessPlan(String memberId) async {
-    // /get/wellness/plan/group_id/member_id
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _plansDb[memberId] ?? [];
-  }
-
-  Future<bool> createWellnessPlan(String memberId, WellnessPlan plan) async {
-    // /create/wellness/plan
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!_plansDb.containsKey(memberId)) {
-      _plansDb[memberId] = [];
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data == null || data.isEmpty) return null;
+      return data;
+    } else {
+      print('Error fetching group info: ${response.statusCode}');
+      return null;
     }
-    // Remove existing plan for the day, then add new one
-    _plansDb[memberId]!.removeWhere((p) => p.dayofWeek == plan.dayofWeek);
-    _plansDb[memberId]!.add(plan);
-    return true;
+  }
+
+  Future<bool> createGroup(String groupName, String section) async {
+    final url = Uri.parse('$baseUrl/create/group');
+    final response = await http.post(
+      url,
+      body: {'group_name': groupName, 'section': section},
+    );
+    return response.statusCode == 200;
+  }
+
+  Future<List<dynamic>> fetchGroupMembers(int groupId) async {
+    final url = Uri.parse('$baseUrl/get/members/$groupId');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data ?? [];
+    } else {
+      print('Error fetching members: ${response.statusCode}');
+      return [];
+    }
+  }
+
+  Future<bool> createMember({
+    required int groupId,
+    required String firstName,
+    required String lastName,
+    required String birthday,
+    required String height,
+    required String weight,
+    required String bmi,
+  }) async {
+    final url = Uri.parse('$baseUrl/create/member/group_id');
+    final response = await http.post(
+      url,
+      body: {
+        'group_id': groupId.toString(),
+        'first_name': firstName,
+        'last_name': lastName,
+        'birthday': birthday,
+        'height': height,
+        'weight': weight,
+        'bmi': bmi,
+      },
+    );
+    return response.statusCode == 200;
+  }
+
+  Future<bool> createWellnessPlan({
+    required int groupId,
+    required int memberId,
+    required String dayOfWeek,
+    required String dietPlan,
+    required String workPlan,
+    required String tips,
+  }) async {
+    final url = Uri.parse('$baseUrl/create/wellness/plan');
+    final response = await http.post(
+      url,
+      body: {
+        'group_id': groupId.toString(),
+        'member_id': memberId.toString(),
+        'dayofWeek': dayOfWeek,
+        'diet_plan': dietPlan,
+        'work_plan': workPlan,
+        'tips': tips,
+      },
+    );
+    return response.statusCode == 200;
   }
 }
