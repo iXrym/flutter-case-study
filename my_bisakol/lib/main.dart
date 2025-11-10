@@ -1,92 +1,63 @@
 import 'package:flutter/material.dart';
+import 'grouppage.dart';
+import 'addgrouppage.dart';
 import 'api_service.dart';
-import 'AddGroupPage.dart';
-import 'GroupPage.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const FitnessApp());
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class FitnessApp extends StatelessWidget {
+  const FitnessApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Fitness Group Finder',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-      ),
-      home: const LandingAsMain(),
+      title: 'Fitness App',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const LandingPage(),
     );
   }
 }
 
-/// Landing page acts as the Google-like search landing page.
-/// The search field is submitted under the parameter name `group_name`.
-class LandingAsMain extends StatefulWidget {
-  const LandingAsMain({super.key});
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
   @override
-  State<LandingAsMain> createState() => _LandingAsMainState();
+  State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingAsMainState extends State<LandingAsMain> {
-  final TextEditingController _groupController = TextEditingController();
+class _LandingPageState extends State<LandingPage> {
+  final TextEditingController _controller = TextEditingController();
+  final ApiService _apiService = ApiService();
+  bool _groupExists = true;
+  Map<String, dynamic>? _groupData;
 
-  bool _loading = false;
-  bool _showCreateButton = false;
-  Map<String, dynamic>? _foundGroup;
-
-  Future<void> _search() async {
-    final groupName = _groupController.text.trim();
-
-    if (groupName.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter group name')));
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _showCreateButton = false;
-      _foundGroup = null;
-    });
+  Future<void> searchGroup(String groupName) async {
+    if (groupName.isEmpty) return;
 
     try {
-      final data = await ApiService().getGroupInfo(groupName);
+      final data = await _apiService.getGroupInfo(groupName);
 
-      if (data == null || data.isEmpty) {
+      if (data != null) {
         setState(() {
-          _showCreateButton = true;
+          _groupExists = true;
+          _groupData = data;
         });
-      } else {
-        setState(() {
-          _foundGroup = data;
-        });
-
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => GroupPage(groupData: data)),
+          MaterialPageRoute(builder: (_) => GroupPage(groupData: _groupData!)),
         );
+      } else {
+        setState(() {
+          _groupExists = false;
+        });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error searching group: $e')));
-    } finally {
+      print('Error searching group: $e');
       setState(() {
-        _loading = false;
+        _groupExists = false;
       });
     }
-  }
-
-  void _openCreateGroup() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddGroupPage()),
-    );
   }
 
   @override
@@ -94,66 +65,62 @@ class _LandingAsMainState extends State<LandingAsMain> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: SizedBox(
-          width: 560,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Fitness Mate',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.blueAccent,
-                ),
+              Image.network(
+                'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg',
+                height: 100,
               ),
-              const SizedBox(height: 28),
-              Material(
-                elevation: 2,
-                borderRadius: BorderRadius.circular(40),
+              const SizedBox(height: 40),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade200,
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
                 child: TextField(
-                  controller: _groupController,
+                  controller: _controller,
                   decoration: InputDecoration(
-                    hintText: 'Search group name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(40),
-                      borderSide: BorderSide.none,
-                    ),
+                    hintText: 'Search your group (group_name)',
+                    border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16,
                       horizontal: 20,
+                      vertical: 15,
                     ),
-                    suffixIcon: _loading
-                        ? const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : IconButton(
-                            icon: const Icon(Icons.search),
-                            onPressed: _search,
-                          ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () => searchGroup(_controller.text),
+                    ),
                   ),
-                  onSubmitted: (_) => _search(),
+                  onSubmitted: (value) => searchGroup(value),
                 ),
               ),
 
-              const SizedBox(height: 12),
-              if (_showCreateButton)
-                ElevatedButton.icon(
-                  onPressed: _openCreateGroup,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Group'),
-                  style: ElevatedButton.styleFrom(
-                    shape: const StadiumBorder(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                  ),
+              const SizedBox(height: 20),
+
+              if (!_groupExists)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddGroupPage(groupName: _controller.text),
+                      ),
+                    );
+                  },
+                  child: const Text('Create Group'),
                 ),
             ],
           ),

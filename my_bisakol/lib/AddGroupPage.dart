@@ -1,68 +1,89 @@
+// File: addgrouppage.dart
+
 import 'package:flutter/material.dart';
-import 'api_service.dart';
+import 'api_service.dart'; // Ensure you have this import
+import 'grouppage.dart'; // Ensure you have this import
 
 class AddGroupPage extends StatefulWidget {
-  const AddGroupPage({super.key});
+  // 1. Define the required parameter
+  final String groupName;
+
+  // 2. Define the constructor to accept the named parameter
+  const AddGroupPage({super.key, required this.groupName});
+
   @override
   State<AddGroupPage> createState() => _AddGroupPageState();
 }
 
 class _AddGroupPageState extends State<AddGroupPage> {
-  final _nameCtrl = TextEditingController();
-  final _sectionCtrl = TextEditingController();
-  bool _loading = false;
+  final TextEditingController _sectionController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
-  Future<void> _create() async {
-    final name = _nameCtrl.text.trim();
-    final section = _sectionCtrl.text.trim();
-    if (name.isEmpty || section.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill both name and section')),
-      );
+  Future<void> createGroup() async {
+    // Basic validation
+    if (_sectionController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a section.')));
       return;
     }
-    setState(() => _loading = true);
-    final ok = await ApiService().createGroup(
-      groupName: name,
-      section: section,
-    );
-    setState(() => _loading = false);
-    if (ok) {
+
+    try {
+      final success = await _apiService.createGroup(
+        groupName: widget.groupName,
+        section: _sectionController.text,
+      );
+
+      if (success) {
+        // After creation, attempt to fetch the new group's data to navigate to the GroupPage
+        final groupData = await _apiService.getGroupInfo(widget.groupName);
+        if (groupData != null) {
+          // Navigate to the GroupPage, replacing the current page in the stack
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => GroupPage(groupData: groupData)),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create group. Check API/network.'),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Group created')));
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to create group')));
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Group')),
+      appBar: AppBar(title: const Text('Create New Group')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Group Name'),
+            Text(
+              'Group Name (Locked): ${widget.groupName}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             TextField(
-              controller: _sectionCtrl,
-              decoration: const InputDecoration(labelText: 'Section'),
+              controller: _sectionController,
+              decoration: const InputDecoration(
+                labelText: 'Section', // Form parameter: section
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 18),
-            _loading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _create,
-                    child: const Text('Create Group'),
-                  ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: createGroup,
+              child: const Text('Submit Group'),
+            ),
           ],
         ),
       ),

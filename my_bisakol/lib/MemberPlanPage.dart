@@ -1,140 +1,95 @@
 import 'package:flutter/material.dart';
-import 'api_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class MemberPage extends StatefulWidget {
+class MemberPlanPage extends StatefulWidget {
   final int groupId;
-  final int memberId;
-  final String memberName;
-
-  const MemberPage({
-    super.key,
-    required this.groupId,
-    required this.memberId,
-    required this.memberName,
-  });
+  final Map member;
+  MemberPlanPage({required this.groupId, required this.member});
 
   @override
-  State<MemberPage> createState() => _MemberPageState();
+  State<MemberPlanPage> createState() => _MemberPlanPageState();
 }
 
-class _MemberPageState extends State<MemberPage> {
-  List<Map<String, dynamic>> _plans = [];
-  bool _loading = true;
+class _MemberPlanPageState extends State<MemberPlanPage> {
+  final TextEditingController _dietPlan = TextEditingController();
+  final TextEditingController _workPlan = TextEditingController();
+  final TextEditingController _tips = TextEditingController();
+  String _selectedDay = 'Monday';
 
-  final _diet = TextEditingController();
-  final _work = TextEditingController();
-  final _tips = TextEditingController();
-  String _day = 'Monday';
-  bool _saving = false;
+  Future<void> createPlan() async {
+    final url = Uri.parse(
+      'https://poltergeists.online/api/create/wellness/plan',
+    );
+    final response = await http.post(
+      url,
+      body: {
+        'group_id': widget.groupId.toString(),
+        'member_id': widget.member['member_id'].toString(),
+        'dayofWeek': _selectedDay,
+        'diet_plan': _dietPlan.text,
+        'work_plan': _workPlan.text,
+        'tips': _tips.text,
+      },
+    );
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPlans();
-  }
-
-  Future<void> _loadPlans() async {
-    setState(() => _loading = true);
-    try {
-      final data = await ApiService().getWellnessPlans(
-        widget.groupId,
-        widget.memberId,
-      );
-      setState(() => _plans = data);
-    } catch (e) {
+    if (response.statusCode == 200) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error loading plans: $e')));
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _savePlan() async {
-    setState(() => _saving = true);
-    final ok = await ApiService().createWellnessPlan(
-      groupId: widget.groupId,
-      memberId: widget.memberId,
-      dayOfWeek: _day,
-      dietPlan: _diet.text.trim(),
-      workPlan: _work.text.trim(),
-      tips: _tips.text.trim(),
-    );
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Plan saved' : 'Failed to save plan')),
-    );
-    if (ok) {
-      _diet.clear();
-      _work.clear();
+      ).showSnackBar(SnackBar(content: Text('Plan created!')));
+      _dietPlan.clear();
+      _workPlan.clear();
       _tips.clear();
-      _loadPlans();
+    } else {
+      throw Exception('Failed to create plan');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.memberName}')),
+      appBar: AppBar(
+        title: Text(
+          '${widget.member['first_name']} ${widget.member['last_name']}',
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
+        padding: EdgeInsets.all(16),
+        child: ListView(
           children: [
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _plans.isEmpty
-                  ? const Center(child: Text('No wellness plans yet'))
-                  : ListView.builder(
-                      itemCount: _plans.length,
-                      itemBuilder: (context, i) {
-                        final p = _plans[i];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          child: ListTile(
-                            title: Text(p['dayofWeek'] ?? 'Day'),
-                            subtitle: Text(
-                              'Diet: ${p['diet_plan'] ?? ''}\nWorkout: ${p['work_plan'] ?? ''}\nTips: ${p['tips'] ?? ''}',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            const Divider(),
-            const Text(
-              'Create Wellness Plan (Mon–Fri)',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _day,
-              items: days
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                  .toList(),
-              onChanged: (v) => setState(() => _day = v ?? _day),
-              decoration: const InputDecoration(labelText: 'Day of Week'),
+              value: _selectedDay,
+              items:
+                  [
+                        'Monday',
+                        'Tuesday',
+                        'Wednesday',
+                        'Thursday',
+                        'Friday',
+                        'Saturday',
+                        'Sunday',
+                      ]
+                      .map(
+                        (day) => DropdownMenuItem(value: day, child: Text(day)),
+                      )
+                      .toList(),
+              onChanged: (val) => setState(() => _selectedDay = val!),
+              decoration: InputDecoration(labelText: 'Day of Week'),
             ),
             TextField(
-              controller: _diet,
-              decoration: const InputDecoration(labelText: 'Diet Plan'),
+              controller: _dietPlan,
+              decoration: InputDecoration(labelText: 'Diet Plan'),
             ),
             TextField(
-              controller: _work,
-              decoration: const InputDecoration(labelText: 'Workout Plan'),
+              controller: _workPlan,
+              decoration: InputDecoration(labelText: 'Workout Plan'),
             ),
             TextField(
               controller: _tips,
-              decoration: const InputDecoration(labelText: 'Tips'),
+              decoration: InputDecoration(labelText: 'Tips'),
             ),
-            const SizedBox(height: 8),
-            _saving
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _savePlan,
-                    child: const Text('Save Plan'),
-                  ),
+            SizedBox(height: 20),
+            ElevatedButton(onPressed: createPlan, child: Text('Save Plan')),
           ],
         ),
       ),

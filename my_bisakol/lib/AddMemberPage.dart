@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'api_service.dart';
+import 'api_service.dart'; // Ensure ApiService is available
 
 class AddMemberPage extends StatefulWidget {
   final int groupId;
+
+  // Use const constructor
   const AddMemberPage({super.key, required this.groupId});
 
   @override
@@ -10,89 +12,104 @@ class AddMemberPage extends StatefulWidget {
 }
 
 class _AddMemberPageState extends State<AddMemberPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _first = TextEditingController();
-  final _last = TextEditingController();
-  final _birthday = TextEditingController();
-  final _height = TextEditingController();
-  final _weight = TextEditingController();
-  final _bmi = TextEditingController();
-  bool _loading = false;
+  // Use private fields for controllers
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _birthdayController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _bmiController = TextEditingController();
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+  final ApiService _apiService = ApiService();
 
-    final ok = await ApiService().createMember(
-      groupId: widget.groupId,
-      lastName: _last.text.trim(),
-      firstName: _first.text.trim(),
-      birthday: _birthday.text.trim(),
-      height: _height.text.trim(),
-      weight: _weight.text.trim(),
-      bmi: _bmi.text.trim(),
-    );
+  Future<void> createMember() async {
+    // Basic validation to prevent empty submissions
+    if (_firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in first and last name.')),
+        );
+      }
+      return;
+    }
 
-    setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Member created' : 'Failed to create member'),
-      ),
-    );
-    if (ok) Navigator.pop(context);
+    try {
+      final success = await _apiService.createMember(
+        groupId: widget.groupId,
+        lastName: _lastNameController.text,
+        firstName: _firstNameController.text,
+        birthday: _birthdayController.text,
+        height: _heightController.text,
+        weight: _weightController.text,
+        bmi: _bmiController.text,
+      );
+
+      if (success) {
+        if (mounted) {
+          // Go back to the group page
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create member. Status not 200.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating member: $e')));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Member')),
+      appBar: AppBar(title: Text('Add Member to Group ${widget.groupId}')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _first,
-                decoration: const InputDecoration(labelText: 'First Name'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            TextField(
+              controller: _firstNameController,
+              decoration: const InputDecoration(labelText: 'First Name'),
+            ),
+            TextField(
+              controller: _lastNameController,
+              decoration: const InputDecoration(labelText: 'Last Name'),
+            ),
+            TextField(
+              controller: _birthdayController,
+              decoration: const InputDecoration(
+                labelText: 'Birthday (YYYY-MM-DD)',
               ),
-              TextFormField(
-                controller: _last,
-                decoration: const InputDecoration(labelText: 'Last Name'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _birthday,
-                decoration: const InputDecoration(
-                  labelText: 'Birthday (YYYY-MM-DD)',
-                ),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _height,
-                decoration: const InputDecoration(labelText: 'Height (cm)'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _weight,
-                decoration: const InputDecoration(labelText: 'Weight (kg)'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _bmi,
-                decoration: const InputDecoration(labelText: 'BMI'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 18),
-              _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _save,
-                      child: const Text('Save Member'),
-                    ),
-            ],
-          ),
+            ),
+            TextField(
+              controller: _heightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Height (cm)'),
+            ),
+            TextField(
+              controller: _weightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Weight (kg)'),
+            ),
+            TextField(
+              controller: _bmiController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'BMI'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: createMember,
+              child: const Text('Add Member'),
+            ),
+          ],
         ),
       ),
     );

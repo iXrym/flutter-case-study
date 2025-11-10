@@ -5,7 +5,6 @@ class ApiService {
   final String base = 'https://poltergeists.online/api';
 
   /// GET /get/group/information?group_name=...
-  /// Returns a Map (group object) or null if not found/empty
   Future<Map<String, dynamic>?> getGroupInfo(String groupName) async {
     final uri = Uri.parse(
       '$base/get/group/information',
@@ -13,10 +12,12 @@ class ApiService {
     final res = await http.get(uri);
     if (res.statusCode == 200) {
       final decoded = jsonDecode(res.body);
-      if (decoded == null) return null;
-      if (decoded is Map && decoded.isNotEmpty)
+      // API might return a List of groups, take the first one if found
+      if (decoded is List && decoded.isNotEmpty) {
+        return Map<String, dynamic>.from(decoded[0]);
+      } else if (decoded is Map && decoded.isNotEmpty) {
         return Map<String, dynamic>.from(decoded);
-      // if response is a list and empty -> treat as null
+      }
       return null;
     } else {
       throw Exception('Failed to fetch group info: ${res.statusCode}');
@@ -24,8 +25,6 @@ class ApiService {
   }
 
   /// POST /post/group/information
-  /// Body: group_name, section
-  /// Returns true if created (status 200), false otherwise
   Future<bool> createGroup({
     required String groupName,
     required String section,
@@ -39,7 +38,6 @@ class ApiService {
   }
 
   /// GET /get/members/{group_id}
-  /// Returns List of members
   Future<List<Map<String, dynamic>>> getMembers(int groupId) async {
     final uri = Uri.parse('$base/get/members/$groupId');
     final res = await http.get(uri);
@@ -57,7 +55,6 @@ class ApiService {
   }
 
   /// POST /create/member/{group_id}
-  /// Body: group_id, last_name, first_name, birthday, height, weight, bmi
   Future<bool> createMember({
     required int groupId,
     required String lastName,
@@ -104,7 +101,6 @@ class ApiService {
   }
 
   /// POST /create/wellness/plan
-  /// Body: group_id, member_id, dayofWeek, diet_plan, work_plan, tips
   Future<bool> createWellnessPlan({
     required int groupId,
     required int memberId,
